@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html ng-app="crudApp">
+<head>
+    <title>Form Data CRUD</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, textarea {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .record-list {
+            background: #e0ffe0;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .record {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .record:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body ng-controller="formController">
+
+    <h1>Form Data CRUD</h1>
+
+    <form ng-submit="submitForm()">
+        <label>Name:</label>
+        <input type="text" ng-model="formData.name" required>
+
+        <label>Email:</label>
+        <input type="email" ng-model="formData.email" required>
+
+        <label>Message:</label>
+        <textarea ng-model="formData.message" rows="4" required></textarea>
+
+        <button type="submit">{{ isEditing ? 'Update' : 'Submit' }}</button>
+        <button type="button" ng-click="resetForm()" ng-if="isEditing">Cancel</button>
+    </form>
+
+    <div class="record-list">
+        <h3>Previous Records</h3>
+        <div class="record" ng-repeat="form in forms">
+            <p><strong>Name:</strong> {{ form.name }}</p>
+            <p><strong>Email:</strong> {{ form.email }}</p>
+            <p><strong>Message:</strong> {{ form.message }}</p>
+            <button ng-click="editForm(form)">Edit</button>
+            <button ng-click="deleteForm(form.id)">Delete</button>
+        </div>
+    </div>
+
+    <script>
+        var app = angular.module('crudApp', []);
+
+        app.controller('formController', function($scope, $http) {
+            $scope.formData = {};
+            $scope.forms = [];
+            $scope.isEditing = false;
+            $scope.editingId = null;
+
+            $scope.getForms = function() {
+                $http.get('http://localhost:3000/forms')
+                    .then(function(response) {
+                        $scope.forms = response.data;
+                    }, function(error) {
+                        console.error('Error fetching forms:', error);
+                    });
+            };
+
+            $scope.submitForm = function() {
+                if ($scope.isEditing) {
+                    $http.put('http://localhost:3000/forms/' + $scope.editingId, $scope.formData)
+                        .then(function(response) {
+                            alert('Form updated successfully!');
+                            $scope.resetForm();
+                            $scope.getForms();
+                        }, function(error) {
+                            console.error('Error updating form:', error);
+                        });
+                } else {
+                    $http.post('http://localhost:3000/submit-form', $scope.formData)
+                        .then(function(response) {
+                            alert('Form submitted successfully!');
+                            $scope.resetForm();
+                            $scope.getForms();
+                        }, function(error) {
+                            console.error('Error submitting form:', error);
+                        });
+                }
+            };
+
+            $scope.editForm = function(form) {
+                $scope.isEditing = true;
+                $scope.editingId = form.id;
+                $scope.formData = angular.copy(form);
+            };
+
+            $scope.deleteForm = function(id) {
+                if (confirm('Are you sure you want to delete this record?')) {
+                    $http.delete('http://localhost:3000/forms/' + id)
+                        .then(function(response) {
+                            alert('Form deleted successfully!');
+                            $scope.getForms();
+                        }, function(error) {
+                            console.error('Error deleting form:', error);
+                        });
+                }
+            };
+
+            $scope.resetForm = function() {
+                $scope.formData = {};
+                $scope.isEditing = false;
+                $scope.editingId = null;
+            };
+
+            $scope.getForms();
+        });
+    </script>
+</body>
+</html>
